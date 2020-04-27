@@ -5,11 +5,11 @@ const POKEMONS_URL = `${BASE_URL}/pokemons`
 function fetchPokemon(event) {
     fetch(TRAINERS_URL)
     .then(resp => resp.json())
-    .then(trainersArray => trainersArray.forEach(trainer => renderPokemon(trainer)))
+    .then(trainersArray => trainersArray.forEach(trainer => renderTrainer(trainer)))
 }
 
 //When a user loads the page, they should see all trainers, with their current team of Pokemon.
-function renderPokemon(trainer) {
+function renderTrainer(trainer) {
     const mainContainer = document.getElementById("trainer-team-container")
     const divCard = document.createElement("div")
     divCard.className = "card"
@@ -19,35 +19,66 @@ function renderPokemon(trainer) {
     pName.innerText = trainer.name
     
     const buttonAdd = document.createElement("button")
-    buttonAdd.data_trainer_id = trainer.id
+    buttonAdd.setAttribute("data_trainer_id", trainer.id)
     buttonAdd.innerText = "Add Pokemon"
     buttonAdd.id = trainer.id
 
     mainContainer.append(divCard)
     divCard.append(pName, buttonAdd)
 
-    trainer.pokemons.forEach(function(pokemon){
-        // buttonRelease.id = pokemon.id
-        const ul = document.createElement("ul")
-        const liName = document.createElement("li")
-        liName.innerText = `${pokemon.nickname} (${pokemon.species})`
-        const buttonRelease = document.createElement("button")
-        // buttonRelease.innerText = "Release"
-        buttonRelease.className = "release"
-        buttonRelease.innerText = "Release"
-        buttonRelease.data_pokemon_id = pokemon.id
+    buttonAdd.onclick = addPokemon
 
-        liName.appendChild(buttonRelease)
-        ul.appendChild(liName)
-        divCard.appendChild(ul)
+    const ul = document.createElement("ul")
+    divCard.appendChild(ul)
 
-    })
+
+    trainer.pokemons.forEach(function(pokemon){renderPokemon(pokemon, ul)})
+}
+
+function renderPokemon(pokemon, ulNode) {
+    const liName = document.createElement("li")
+    liName.innerText = `${pokemon.nickname} (${pokemon.species})`
+    const buttonRelease = document.createElement("button")
+    buttonRelease.className = "release"
+    buttonRelease.innerText = "Release"
+    buttonRelease.setAttribute("data-pokemon-id", pokemon.id)
+
+    liName.appendChild(buttonRelease)
+    ulNode.appendChild(liName)
+    
+    buttonRelease.onclick = removePokemon
 }
 
 //Whenever a user hits "Add Pokemon" and they have space on their team, they should get a new Pokemon.
-// function addPokemon(event) {
-//     let button
 
-//     fetch(POKEMONS_URL)
-//     .then()
-// }
+function addPokemon(event) {
+    console.log("add pokemon here")
+    const id = event.target.getAttribute("data_trainer_id")
+    let div = event.target.parentElement
+    let ulNode = div.querySelector("ul")
+    let numPokemon = div.querySelectorAll("li").length
+    let obj = {
+        trainer_id: id
+    }
+    if (numPokemon < 6) {
+    fetch(POKEMONS_URL, {
+        method: "POST",
+        headers: {"Content-Type": 'application/json'},
+        body: JSON.stringify(obj)
+    })
+    .then(resp => resp.json())
+    .then(newPokemon => renderPokemon(newPokemon, ulNode))
+}
+}
+
+// Whenever a user hits "Release Pokemon" on a specific Pokemon team, that specific Pokemon should be released from the team.
+
+function removePokemon(event) {
+    let pokeId = event.target.dataset.pokemonId
+    let liDelete = event.target.parentElement
+    liDelete.remove()
+
+    fetch(`${POKEMONS_URL}/${pokeId}`, {
+        method: "DELETE"
+    })
+}
